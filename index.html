@@ -39,6 +39,10 @@
         varying vec3 v_normal;
         varying highp vec2 FtexCoord;
 
+        float fade(float t)
+        {
+            return (t*(t*6.0-15.0)+10.0)*t*t*t;
+        }
 
         void main(void) {
         vec4 texcolor;
