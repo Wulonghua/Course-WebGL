@@ -31,9 +31,13 @@
         uniform sampler2D myTexture;
         uniform samplerCube cubeMap;
 
+        uniform sampler2D permutation_sampler;
+        uniform sampler2D gradient_sampler;
+
         varying vec4 eye_pos;
         varying vec3 v_normal;
         varying highp vec2 FtexCoord;
+        varying vec3 noise_seed;
 
         float fade(float t)
         {
@@ -45,12 +49,11 @@
         }
 
         float grad(float hash, vec3 pos){
-
-            return 0.0;
+            return dot(texture2D(gradient_sampler, vec2(hash,0)).rgb, pos);
         }
 
         float permute(float x){
-            return 0.0;
+            return texture2D(permutation_sampler, vec2(x / 256.0, 0)).r * 256.0;
         }
 
         float generatePerlinNoise(vec3 pos){
@@ -113,14 +116,19 @@
             texcolor = texture2D(myTexture, FtexCoord);
             gl_FragColor = texcolor *(ambient+diffuse) +specular;
         }
-        else if (use_texture == 2){
+        else if (use_texture == 2) {
+            texcolor = texture2D(myTexture, FtexCoord);
+            float noise = generatePerlinNoise(noise_seed);
+            gl_FragColor = texcolor *(ambient+diffuse) + vec4(noise,noise,0.0,1.0);
+        }
+        else if (use_texture == 3){
             view_vector = normalize(vec3(vec4(0,0,0,1)-eye_pos));
             ref = normalize(reflect(-view_vector, v_normal));  // in eye space
             ref = vec3(uV2WMatrix*vec4(ref,0));   // convert to world space
             env_color = textureCube(cubeMap, ref);
             gl_FragColor = env_color;
         }
-        else if(use_texture ==3){
+        else if(use_texture ==4){
             float ratio = 1.00 / 1.52;
             view_vector = normalize(vec3(vec4(0,0,0,1)-eye_pos));
             ref = refract(-view_vector, normalize(v_normal), ratio);
@@ -149,6 +157,7 @@
 
         varying vec4 eye_pos;  //vertex position in eye space
         varying vec3 v_normal;  // vertex normal
+        varying vec3 noise_seed;
         varying highp vec2 FtexCoord;
 
         void main(void) {
@@ -158,6 +167,8 @@
 
         // transform the vertex position to eye space
         eye_pos = uVMatrix*uMMatrix*vec4(aVertexPosition, 1.0);
+
+        noise_seed = aVertexPosition * 8.0;
 
         FtexCoord = aVertexTexCoords;
 
@@ -197,7 +208,7 @@
 <body onload="webGLStart();">
 <div class="wrapper">
     <header>
-        <h1 class="header">Course-webgl</h1>
+        <h1 class="header">Course-WebGL</h1>
         <p class="header"></p>
 
         <ul>
@@ -220,12 +231,14 @@
             Real Time Rendering Demo
         </h3>
 
-        <canvas id="lab5-canvas" style="border:none;" width="600" height="600"></canvas>
+        <canvas id="lab5-canvas" style="border:none;" width="650" height="650"></canvas>
+
         <h4> Texture:  </h4>
         <button onclick="texture(0)"> NO  </button>
         <button onclick="texture(1)"> Regular </button>
-        <button onclick="texture(2)"> Reflection </button>
-        <button onclick="texture(3)"> Refraction </button>
+        <button onclick="texture(2)"> Perlin Noise </button>
+        <button onclick="texture(3)"> Reflection </button>
+        <button onclick="texture(4)"> Refraction </button>
 
         <div>
             <h4>
