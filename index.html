@@ -15,10 +15,6 @@
         precision mediump float;
         precision mediump int;
 
-        uniform mat4 uMMatrix;    // model matrix
-        uniform mat4 uVMatrix;    // view matrix
-        uniform mat4 uPMatrix;    // projection matrix
-        uniform mat4 uNMatrix;    // normal matrix
         uniform mat4 uV2WMatrix;  // eye to world
 
         uniform vec4 light_pos;
@@ -42,6 +38,47 @@
         float fade(float t)
         {
             return (t*(t*6.0-15.0)+10.0)*t*t*t;
+        }
+
+        float lerp(float t, float a, float b){
+            return mix(a, b, t);
+        }
+
+        float grad(float hash, vec3 pos){
+
+            return 0.0;
+        }
+
+        float permute(float x){
+            return 0.0;
+        }
+
+        float generatePerlinNoise(vec3 pos){
+            vec3 pos_t = mod(floor(pos),256.0);
+            float X = pos_t.x;
+            float Y = pos_t.y;
+            float Z = pos_t.z;
+            float x = pos.x - floor(pos.x);
+            float y = pos.y - floor(pos.y);
+            float z = pos.z - floor(pos.z);
+            float u = fade(x);
+            float v = fade(y);
+            float w = fade(z);
+            float A  = permute(X)+Y;
+            float AA = permute(A)+Z;
+            float AB = permute(A+1.0)+Z;
+            float B  = permute(X+1.0)+Y;
+            float BA = permute(B)+Z;
+            float BB = permute(B+1.0)+Z;
+
+            return lerp(w, lerp(v, lerp(u, grad(permute(AA), vec3(x  , y  , z)),
+                                           grad(permute(BA), vec3(x-1.0, y  , z))),
+                                   lerp(u, grad(permute(AB), vec3(x  , y-1.0, z)),
+                                           grad(permute(BB), vec3(x-1.0, y-1.0, z)))),
+                           lerp(v, lerp(u, grad(permute(AA+1.0), vec3(x  , y  , z-1.0)),
+                                           grad(permute(BA+1.0), vec3(x-1.0, y  , z-1.0))),
+                                   lerp(u, grad(permute(AB+1.0), vec3(x  , y-1.0, z-1.0)),
+                                           grad(permute(BB+1.0), vec3(x-1.0, y-1.0, z-1.0)))));
         }
 
         void main(void) {
@@ -109,20 +146,6 @@
         uniform mat4 uVMatrix;
         uniform mat4 uPMatrix;
         uniform mat4 uNMatrix;
-        uniform mat4 uV2WMatrix;  // eye to world
-
-        uniform vec4 light_pos;
-        uniform vec4 ambient_coef;
-        uniform vec4 diffuse_coef;
-        uniform vec4 specular_coef;
-        uniform float mat_shininess;
-
-        uniform vec4 light_ambient;
-        uniform vec4 light_diffuse;
-        uniform vec4 light_specular;
-
-        uniform int use_texture;
-        uniform sampler2D myTexture;
 
         varying vec4 eye_pos;  //vertex position in eye space
         varying vec3 v_normal;  // vertex normal
@@ -135,8 +158,6 @@
 
         // transform the vertex position to eye space
         eye_pos = uVMatrix*uMMatrix*vec4(aVertexPosition, 1.0);
-
-
 
         FtexCoord = aVertexTexCoords;
 
